@@ -113,7 +113,7 @@ void setup()
   // Set the RTC time
   SetDefaultRTC();
   
-  /* Check internal STML082 and battery power configuration */
+  /* Check internal STM32 and battery power configuration */
   VDDA = STM32.getVREF();
   Temperature = STM32.getTemperature();
  
