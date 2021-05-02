@@ -155,7 +155,7 @@ void setup()
    if(batStatus & 0x0040) Serial.println("Fuel gauge discharging!");  
    stateofHealth = LC709204F.stateofHealth();
    Serial.print("Battery state of Health = "); Serial.println(stateofHealth, HEX);
-   delay(1000);
+   delay(1000);                                                         // give some time to read the screen
    
   }
   else 
