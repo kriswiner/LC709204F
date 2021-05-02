@@ -1,6 +1,6 @@
 /* 
    Pendant test code
-   Copyright2 2018 Tlera Corporation
+   Copyright 2021 Tlera Corporation
 
    Includes driver and use example for BMA400 accelerometer demonstrating
    wake-on-motion and sleeop-on-no-motion functionality as well as a driver 
