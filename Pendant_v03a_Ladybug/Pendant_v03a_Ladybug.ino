@@ -1,6 +1,6 @@
 /* 
    Pendant test code
-   Copyright 2021 Tlera Corporation
+   Copyright2 2021 Tlera Corporation
 
    Includes driver and use example for BMA400 accelerometer demonstrating
    wake-on-motion and sleeop-on-no-motion functionality as well as a driver 
@@ -41,7 +41,7 @@ bool SerialDebug = true;
 uint16_t Hour = 1, Minute = 1, Second = 1, Millisec, Year = 1, Month = 1, Day = 1;
 uint8_t hour = 12, minute = 0, second = 0, year = 1, month = 1, day = 1;
 uint32_t subSeconds, milliseconds;
-bool alarmFlag = false;
+bool RTC_alarm_flag = false;
 
 // battery voltage monitor definitions
 float VDDA, VBUS, Temperature;
@@ -113,7 +113,7 @@ void setup()
   // Set the RTC time
   SetDefaultRTC();
   
-  /* Check internal STM32 configuration */
+  /* Check internal STML082 and battery power configuration */
   VDDA = STM32.getVREF();
   Temperature = STM32.getTemperature();
  
@@ -145,7 +145,7 @@ void setup()
    delay(100);      
    BMA400.selfTestBMA400();                                             // perform sensor self test
    BMA400.resetBMA400();                                                // software reset before initialization
-   delay(100);                                                          
+   delay(100);
    BMA400.CompensationBMA400(Ascale, SR, normal_Mode, OSR, acc_filter, offset); // quickly estimate offset bias in normal mode
    BMA400.initBMA400(Ascale, SR, power_Mode, OSR, acc_filter);          // Initialize sensor in desired mode for application                     
 
@@ -218,8 +218,8 @@ void loop()
 
  
   /*RTC*/
-  if (alarmFlag) { // update RTC output on RTC alarm
-      alarmFlag = false;
+  if (RTC_alarm_flag) { // update RTC output whenever there is a GNSS pulse
+      RTC_alarm_flag = false;
     
     if(SerialDebug && InMotion) {
       
@@ -241,7 +241,7 @@ void loop()
     Temperature = STM32.getTemperature();
 
     // Battery fuel gauge measurements
-    LC709204F.operate();
+//    LC709204F.operate();
     //Set cell temperature as MCU temperature in units of 0.1 K
     LC709204F.setTemperature(2732 +  ((int16_t) (10.0f * Temperature)) );
 //    Serial.println(2732 +  ((int16_t) (10.0f * Temperature)) , HEX);
@@ -251,7 +251,7 @@ void loop()
     RSOC = LC709204F.getRSOC();
     timetoEmpty = LC709204F.timetoEmpty();
     ITE = ((float) LC709204F.getITE()) / 10.0f;
-    LC709204F.sleep(); // sleep current 1.3 uA, operate current ~2 uA
+//    LC709204F.sleep(); // sleep current 1.3 uA, operate current ~2 uA
     
    if(SerialDebug) {
       Serial.print("VDDA = "); Serial.print(VDDA, 2); Serial.println(" V");
@@ -330,7 +330,7 @@ void myinthandler3()
 
 void alarmMatch()
 {
-  alarmFlag = true;
+  RTC_alarm_flag = true;
 }
 
 void SetDefaultRTC()                                                                                 // Function sets the RTC to the FW build date-time...
