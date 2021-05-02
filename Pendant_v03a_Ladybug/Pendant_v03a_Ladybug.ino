@@ -218,7 +218,7 @@ void loop()
 
  
   /*RTC*/
-  if (alarmFlag) { // update RTC output whenever there is a GNSS pulse
+  if (alarmFlag) { // update RTC output on RTC alarm
       alarmFlag = false;
     
     if(SerialDebug && InMotion) {
