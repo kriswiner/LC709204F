@@ -257,9 +257,11 @@ void loop()
     Serial2.println(" ");
     }
 
+   Temperature = STM32.getTemperature();
+    VDDA = STM32.getVREF();
     // Battery fuel gauge measurements
 //    LC709204F.operate();
-    //Set cell temperature as MCU temperature in units of 0.1 K
+    // Set cell temperature as MCU temperature in units of 0.1 K
     LC709204F.setTemperature(2732 +  ((int16_t) (10.0f * Temperature)) );
 //    Serial.println(2732 +  ((int16_t) (10.0f * Temperature)) , HEX);
 //    cellTemperature = LC709204F.getTemperature(); // write only in I2C mode
@@ -269,8 +271,6 @@ void loop()
     timetoEmpty = LC709204F.timetoEmpty();
     ITE = ((float) LC709204F.getITE()) / 10.0f;
 //    LC709204F.sleep(); // sleep current 1.3 uA, operate current ~2 uA
-    Temperature = STM32.getTemperature();
-    VDDA = STM32.getVREF();
      
    if(SerialDebug) {
       Serial2.print("VDDA = "); Serial2.print(VDDA, 2); Serial2.println(" V");
