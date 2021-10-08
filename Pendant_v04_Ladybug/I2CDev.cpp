@@ -29,8 +29,6 @@
 #include "Arduino.h"
 #include "I2Cdev.h"
 
-#define Serial Serial2
-
 I2Cdev::I2Cdev(TwoWire* i2c_bus)                                                                                                             // Class constructor
 {
   _i2c_bus = i2c_bus;
@@ -48,35 +46,36 @@ I2Cdev::~I2Cdev()                                                               
 * @params: I2C slave device address, Register subAddress
 * @returns: unsigned short read
 */
-uint8_t I2Cdev::readByte(uint8_t devAddr, uint8_t regAddr)
+uint8_t I2Cdev::readByte(uint8_t address, uint8_t subAddress)
 {
   uint8_t data = 0;                             // `data` will store the register data   
-  _i2c_bus->beginTransmission(devAddr);         // Initialize the Tx buffer
-  _i2c_bus->write(regAddr);                     // Put slave register address in Tx buffer
+  _i2c_bus->beginTransmission(address);         // Initialize the Tx buffer
+  _i2c_bus->write(subAddress);                  // Put slave register address in Tx buffer
   _i2c_bus->endTransmission(false);             // Send the Tx buffer, but send a restart to keep connection alive
-  _i2c_bus->requestFrom(devAddr, 1);            // Read one byte from slave register address  
+  _i2c_bus->requestFrom(address, 1);            // Read one byte from slave register address  
   data = _i2c_bus->read();                      // Fill Rx buffer with result
   return data;                                  // Return data read from slave register
+  
 }
 
 
 /**
 * @fn: readBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t * dest)
 *
-* @brief: Read multiple bytes from an I2C device  
+* @brief: Read multiple bytes from an I2C device
 * 
 * @params: I2C slave device address, Register subAddress, number of btes to be read, aray to store the read data
 * @returns: void
 */
-void I2Cdev::readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t count, uint8_t * dest)
+void I2Cdev::readBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t * dest)
 {  
-  _i2c_bus->beginTransmission(devAddr);    // Initialize the Tx buffer
-  _i2c_bus->write(regAddr);              // Put  slave register address in Tx buffer
-  _i2c_bus->endTransmission(false);        // Send the Tx buffer, but send a restart to keep connection alive
+  _i2c_bus->beginTransmission(address);   // Initialize the Tx buffer
+  _i2c_bus->write(subAddress);            // Put slave register address in Tx buffer
+  _i2c_bus->endTransmission(false);       // Send the Tx buffer, but send a restart to keep connection alive
   uint8_t i = 0;
-  _i2c_bus->requestFrom(devAddr, count);   // Read bytes from slave register address 
+  _i2c_bus->requestFrom(address, count);  // Read bytes from slave register address 
   while (_i2c_bus->available()) {
-        dest[i++] = _i2c_bus->read(); }    // Put read results in the Rx buffer
+        dest[i++] = _i2c_bus->read(); }   // Put read results in the Rx buffer
 }
 
 
@@ -91,7 +90,7 @@ void I2Cdev::readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t count, uint8_t 
 void I2Cdev::writeByte(uint8_t devAddr, uint8_t regAddr, uint8_t data)
 {
   _i2c_bus->beginTransmission(devAddr);  // Initialize the Tx buffer
-  _i2c_bus->write(regAddr);              // Put slave register address in Tx buffer
+  _i2c_bus->write(regAddr);           // Put slave register address in Tx buffer
   _i2c_bus->write(data);                 // Put data in Tx buffer
   _i2c_bus->endTransmission();           // Send the Tx buffer
 }
@@ -124,6 +123,7 @@ void I2Cdev::writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t count, uint8_t
   
   _i2c_bus->endTransmission();           // Send the Tx buffer
 }
+
 
 
 /**
@@ -169,4 +169,82 @@ void I2Cdev::I2Cscan()
     Serial.println("No I2C devices found\n");
   else
     Serial.println("I2C scan complete\n");
+}
+
+uint8_t I2Cdev::u1_CRC_8_u1u1( uint8_t u1ArgBeforeData , uint8_t u1ArgAfterData)
+{
+  unsigned char u1TmpLooper = 0;
+  unsigned char u1TmpOutData = 0;
+  unsigned short  u2TmpValue = 0;
+  uint16_t  dPOLYNOMIAL8  =   0x8380;
+
+  u2TmpValue = (unsigned short)(u1ArgBeforeData ^ u1ArgAfterData);
+  u2TmpValue <<= 8;
+
+  for( u1TmpLooper = 0 ; u1TmpLooper < 8 ; u1TmpLooper++ ){
+    if( u2TmpValue & 0x8000 ){
+      u2TmpValue ^= dPOLYNOMIAL8;
+    }
+    u2TmpValue <<= 1;
+  }
+
+  u1TmpOutData = (unsigned char)(u2TmpValue >> 8);
+
+  return( u1TmpOutData );
+}
+
+
+uint16_t I2Cdev::readBytes16(uint8_t address, uint8_t subAddress)
+{  
+  static unsigned char  u1Calc = 0;
+  static unsigned char  u1CRC8 = 0;
+  uint8_t tmp[3] = {0, 0, 0};
+
+  _i2c_bus->beginTransmission(address);           // Initialize the Tx buffer 
+  _i2c_bus->write(subAddress);                    // Put slave register address in Tx buffer 
+  _i2c_bus->endTransmission(false);               // Send the Tx buffer, but send a restart to keep connection alive 
+  uint8_t i = 0;
+  _i2c_bus->requestFrom(address, 3);              // Read two bytes from slave register address   
+  while (_i2c_bus->available()) {
+    tmp[i++] = _i2c_bus->read(); }                // Put read results in the Rx buffer
+
+  u1Calc = u1_CRC_8_u1u1( 0x00   , address<<1 );     // Write Address
+  u1Calc = u1_CRC_8_u1u1( u1Calc , subAddress );     // Command
+  u1Calc = u1_CRC_8_u1u1( u1Calc , (address<<1) + 1 ); // Read Address
+  u1Calc = u1_CRC_8_u1u1( u1Calc , tmp[0] );         // Data LOW
+  u1CRC8 = u1_CRC_8_u1u1( u1Calc , tmp[1] );         // Data HIGH
+
+//  Serial2.print(tmp[2], HEX); Serial2.print(" "); Serial2.println(u1CRC8, HEX);
+
+  if(tmp[2] == u1CRC8) {
+  uint16_t output = (uint16_t) ((uint16_t) tmp[1] << 8) | tmp[0];
+  return output;
+  }
+}
+
+void I2Cdev::writeBytes16(uint8_t address, uint8_t subAddress, uint16_t data)
+{  
+  static unsigned char  u1Calc = 0;
+  static unsigned char  u1CRC8 = 0;
+  uint8_t tmp[4] = {0, 0, 0, 0};
+  
+  tmp[0] =  subAddress;
+  tmp[1] =  data & 0x00FF;
+  tmp[2] = (data & 0xFF00) >> 8;
+  
+  u1Calc = u1_CRC_8_u1u1( 0x00 ,  address<<1 );  // Address
+  u1Calc = u1_CRC_8_u1u1( u1Calc , tmp[0] );  // Command
+  u1Calc = u1_CRC_8_u1u1( u1Calc , tmp[1] );  // LSB
+  u1CRC8 = u1_CRC_8_u1u1( u1Calc , tmp[2] );  // MSB
+
+  tmp[3] = u1CRC8;
+ 
+  _i2c_bus->beginTransmission(address);  // Initialize the Tx buffer
+  
+  for (uint8_t jj = 0; jj < 4; jj++)
+  {
+  _i2c_bus->write(tmp[jj]);              // Put data in Tx buffer
+  }
+  
+  _i2c_bus->endTransmission();           // Send the Tx buffer
 }
