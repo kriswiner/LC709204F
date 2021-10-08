@@ -35,11 +35,15 @@ class I2Cdev {
     public:
                                         I2Cdev(TwoWire*);
                                         ~I2Cdev();                                                                                                                     // Class destructor for durable instances
-         uint8_t                        readByte(uint8_t devAddr, uint8_t regAddr);
-         void                           readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t count, uint8_t * dest);
+         uint8_t                        readByte(uint8_t address, uint8_t subAddress);
+         void                           readBytes(uint8_t address, uint8_t subAddress, uint8_t count, uint8_t * dest);
          void                           writeByte(uint8_t devAddr, uint8_t regAddr, uint8_t data);
          void                           writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t count, uint8_t *dest);
          void                           I2Cscan();
+         uint8_t                        u1_CRC_8_u1u1( uint8_t u1ArgBeforeData , uint8_t u1ArgAfterData);
+         uint16_t                       readBytes16(uint8_t address, uint8_t subAddress);
+         void                           writeBytes16(uint8_t address, uint8_t subAddress, uint16_t data);
+         
     private:
          TwoWire*                       _i2c_bus;                                                                                                                      // Class constructor argument
 };
